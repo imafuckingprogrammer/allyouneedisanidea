@@ -165,3 +165,27 @@ export const DESTRUCTIVE_SELECTORS = [
 export function selectorIsDestructive(selector: string): boolean {
   return DESTRUCTIVE_SELECTORS.some((r) => r.test(selector))
 }
+
+// Map from allowed_actions config keys → which tool names they enable
+const ACTION_KEY_TO_TOOLS: Record<string, string[]> = {
+  navigate: ['navigate_to'],
+  click:    ['click_element'],
+  fill:     ['fill_input'],
+  scroll:   ['scroll_to'],
+  extract:  ['extract_text', 'get_page_state', 'wait'],
+}
+
+// Always-available tools regardless of site config (server-side only)
+const ALWAYS_ALLOWED_TOOLS = new Set(['request_confirmation', 'save_user_memory'])
+
+// Return filtered tool list based on site's allowed_actions setting
+export function getToolsForSite(allowedActions: string[]): OpenAI.Chat.ChatCompletionTool[] {
+  const allowed = new Set<string>()
+  for (const actionKey of allowedActions) {
+    const tools = ACTION_KEY_TO_TOOLS[actionKey] || []
+    tools.forEach((t) => allowed.add(t))
+  }
+  return AGENT_TOOLS.filter(
+    (t) => ALWAYS_ALLOWED_TOOLS.has(t.function.name) || allowed.has(t.function.name)
+  )
+}

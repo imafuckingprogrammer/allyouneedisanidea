@@ -1,13 +1,12 @@
 import { redirect, notFound } from 'next/navigation'
 import { createServerSupabaseClient } from '@/lib/supabase'
-import Link from 'next/link'
 import { ScriptTag } from './ScriptTag'
 
 interface Props {
   params: Promise<{ id: string }>
 }
 
-export default async function SitePage({ params }: Props) {
+export default async function SiteOverviewPage({ params }: Props) {
   const { id } = await params
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -22,61 +21,66 @@ export default async function SitePage({ params }: Props) {
 
   if (!site) notFound()
 
-  const { count: conversationCount } = await supabase
-    .from('conversations')
-    .select('*', { count: 'exact', head: true })
-    .eq('site_id', id)
-
-  const { count: messageCount } = await supabase
-    .from('messages')
-    .select('*, conversations!inner(site_id)', { count: 'exact', head: true })
-    .eq('conversations.site_id', id)
+  const [{ count: convCount }, { count: msgCount }, { count: actionCount }] = await Promise.all([
+    supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('site_id', id),
+    supabase.from('messages')
+      .select('*, conversations!inner(site_id)', { count: 'exact', head: true })
+      .eq('conversations.site_id', id),
+    supabase.from('action_logs').select('*', { count: 'exact', head: true }).eq('site_id', id),
+  ])
 
   const agentServerUrl = process.env.NEXT_PUBLIC_AGENT_SERVER_URL || 'wss://your-agent-server.railway.app'
   const embedUrl = process.env.NEXT_PUBLIC_EMBED_URL || 'https://your-cdn.pages.dev/embed.js'
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 24px' }}>
-      <div style={{ marginBottom: 32 }}>
-        <Link href="/dashboard" style={{ color: '#6b7280', fontSize: 14, textDecoration: 'none' }}>← All Agents</Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 16 }}>
-          <div style={{ width: 52, height: 52, borderRadius: 12, background: site.agent_color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>✨</div>
-          <div>
-            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700 }}>{site.name}</h1>
-            <p style={{ margin: '4px 0 0', color: '#6b7280', fontSize: 14 }}>{site.domain} · Agent: {site.agent_name}</p>
-          </div>
-        </div>
+    <div>
+      {/* Stats row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>
+        <StatCard label="Conversations" value={convCount ?? 0} icon="💬" />
+        <StatCard label="Messages" value={msgCount ?? 0} icon="✉️" />
+        <StatCard label="Actions Taken" value={actionCount ?? 0} icon="⚡" />
       </div>
 
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 32 }}>
-        <StatCard label="Conversations" value={conversationCount || 0} />
-        <StatCard label="Messages" value={messageCount || 0} />
-      </div>
-
-      {/* Script Tag */}
-      <Section title="Your Script Tag" hint="Paste this before the closing </body> tag on your website. That's it.">
+      {/* Script tag */}
+      <Section
+        title="Script Tag"
+        hint="Paste this before the closing </body> tag on your website. The agent appears instantly."
+      >
         <ScriptTag siteId={site.id} embedUrl={embedUrl} agentServerUrl={agentServerUrl} />
       </Section>
 
-      {/* System Prompt */}
-      <Section title="Agent Instructions" hint="What the agent knows and how it behaves.">
-        <pre style={{ background: '#f3f4f6', padding: 16, borderRadius: 8, fontSize: 13, lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0 }}>
-          {site.system_prompt}
-        </pre>
-        <Link href={`/dashboard/sites/${id}/edit`} style={{ display: 'inline-block', marginTop: 12, fontSize: 13, color: '#6366f1', textDecoration: 'none', fontWeight: 500 }}>
-          Edit instructions →
-        </Link>
+      {/* Quick config preview */}
+      <Section title="Agent Configuration" hint="Manage in Settings tab.">
+        <div style={{
+          background: 'white', border: '1px solid #e5e7eb', borderRadius: 12,
+          overflow: 'hidden',
+        }}>
+          <Row label="Name" value={site.agent_name} />
+          <Row label="Domain" value={site.domain} />
+          <Row label="Brand Color" value={
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ width: 16, height: 16, borderRadius: 4, background: site.agent_color, display: 'inline-block' }} />
+              {site.agent_color}
+            </span>
+          } />
+          <Row label="Allowed Actions" value={(site.allowed_actions as string[] || []).join(', ')} last />
+        </div>
       </Section>
     </div>
   )
 }
 
-function StatCard({ label, value }: { label: string; value: number }) {
+function StatCard({ label, value, icon }: { label: string; value: number; icon: string }) {
   return (
-    <div style={{ background: 'white', borderRadius: 12, padding: '20px 24px', border: '1px solid #e5e7eb' }}>
-      <div style={{ fontSize: 28, fontWeight: 700 }}>{value}</div>
-      <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>{label}</div>
+    <div style={{
+      background: 'white', border: '1px solid #e5e7eb', borderRadius: 12,
+      padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 16,
+    }}>
+      <div style={{ fontSize: 28 }}>{icon}</div>
+      <div>
+        <div style={{ fontSize: 28, fontWeight: 700, lineHeight: 1 }}>{value.toLocaleString()}</div>
+        <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>{label}</div>
+      </div>
     </div>
   )
 }
@@ -84,9 +88,24 @@ function StatCard({ label, value }: { label: string; value: number }) {
 function Section({ title, hint, children }: { title: string; hint: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 32 }}>
-      <h2 style={{ fontSize: 18, fontWeight: 600, margin: '0 0 4px' }}>{title}</h2>
-      <p style={{ fontSize: 13, color: '#9ca3af', margin: '0 0 16px' }}>{hint}</p>
+      <div style={{ marginBottom: 12 }}>
+        <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600 }}>{title}</h2>
+        <p style={{ margin: '3px 0 0', fontSize: 13, color: '#9ca3af' }}>{hint}</p>
+      </div>
       {children}
+    </div>
+  )
+}
+
+function Row({ label, value, last }: { label: string; value: React.ReactNode; last?: boolean }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', padding: '14px 20px',
+      borderBottom: last ? 'none' : '1px solid #f3f4f6',
+      gap: 16,
+    }}>
+      <span style={{ width: 140, fontSize: 13, color: '#6b7280', flexShrink: 0 }}>{label}</span>
+      <span style={{ fontSize: 14, color: '#111827' }}>{value}</span>
     </div>
   )
 }

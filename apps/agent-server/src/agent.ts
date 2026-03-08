@@ -10,7 +10,7 @@ import {
   getSiteKnowledge,
   logAction,
 } from './db'
-import { AGENT_TOOLS, DOM_TOOLS, ACTION_LABELS, selectorIsDestructive } from './tools'
+import { getToolsForSite, DOM_TOOLS, ACTION_LABELS, selectorIsDestructive } from './tools'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
@@ -92,6 +92,7 @@ async function runAgentLoop(
   messages: OpenAI.Chat.ChatCompletionMessageParam[]
 ) {
   const MAX_ITERATIONS = 10 // safety ceiling — prevent infinite loops
+  const siteTools = getToolsForSite(site.allowed_actions || ['navigate','click','fill','scroll','extract'])
   let iterations = 0
 
   while (iterations < MAX_ITERATIONS) {
@@ -101,7 +102,7 @@ async function runAgentLoop(
     const stream = await openai.chat.completions.create({
       model: MODEL,
       messages,
-      tools: AGENT_TOOLS,
+      tools: siteTools,
       tool_choice: 'auto',
       stream: true,
       temperature: 0.2, // low temp for reliable tool use
