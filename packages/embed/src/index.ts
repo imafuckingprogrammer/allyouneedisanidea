@@ -11,6 +11,7 @@
 
 import { createWidget } from './widget'
 import { executeAction, getPageState, setupNavigationTracking } from './dom'
+import { initOverlay, highlightElement, showScanOverlay, clearOverlay } from './overlay'
 
 ;(function () {
   // Read config from the script tag that loaded this file
@@ -91,6 +92,7 @@ import { executeAction, getPageState, setupNavigationTracking } from './dom'
       case 'config': {
         // Server sends site config on connect (agent name, color)
         const config = msg.data as { agentName: string; agentColor: string }
+        initOverlay(config.agentColor)
         if (!widget) {
           widget = createWidget({
             agentName: config.agentName,
@@ -117,10 +119,23 @@ import { executeAction, getPageState, setupNavigationTracking } from './dom'
         const action = msg.action as string
         const params = (msg.params as Record<string, unknown>) || {}
         const actionId = msg.actionId as string
+        const label = msg.label as string || action
 
-        widget?.showActionIndicator(msg.label as string || `Running: ${action}`)
+        widget?.showActionIndicator(label)
+
+        // Show page-level overlay depending on action type
+        if (action === 'get_page_state') {
+          showScanOverlay()
+        } else {
+          const selector = (params.selector ?? params.target) as string | undefined
+          if (selector && selector !== 'top' && selector !== 'bottom') {
+            await highlightElement(selector, label)
+          }
+        }
 
         const result = await executeAction(action, params)
+
+        clearOverlay()
         widget?.hideActionIndicator()
 
         // Report result back to server so agent can continue
