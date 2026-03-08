@@ -2,6 +2,12 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Sparkles } from 'lucide-react'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -34,50 +40,54 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: 380, padding: '40px', background: 'white', borderRadius: 16, boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
-        <h1 style={{ margin: '0 0 8px', fontSize: 24, fontWeight: 700 }}>✨ AllYouNeedIsAnIdea</h1>
-        <p style={{ margin: '0 0 32px', color: '#6b7280', fontSize: 14 }}>
-          {mode === 'login' ? 'Sign in to your account' : 'Create your account'}
-        </p>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-muted/30 p-4">
+      <div className="w-full max-w-sm space-y-6">
+        <div className="flex flex-col items-center gap-2 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+            <Sparkles className="h-6 w-6" />
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight">AllYouNeedIsAnIdea</h1>
+          <p className="text-sm text-muted-foreground">
+            {mode === 'login' ? 'Sign in to your account' : 'Create a new account'}
+          </p>
+        </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <input
-            type="email" placeholder="Email" value={email}
-            onChange={(e) => setEmail(e.target.value)} required
-            style={inputStyle}
-          />
-          <input
-            type="password" placeholder="Password" value={password}
-            onChange={(e) => setPassword(e.target.value)} required
-            style={inputStyle}
-          />
-          {error && <p style={{ color: '#dc2626', fontSize: 13, margin: 0 }}>{error}</p>}
-          <button type="submit" disabled={loading} style={btnStyle}>
-            {loading ? 'Loading...' : mode === 'login' ? 'Sign in' : 'Create account'}
-          </button>
-        </form>
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base">
+              {mode === 'login' ? 'Welcome back' : 'Get started'}
+            </CardTitle>
+            <CardDescription>
+              {mode === 'login' ? 'Enter your credentials to continue' : 'Fill in your details to create an account'}
+            </CardDescription>
+          </CardHeader>
+          <form onSubmit={handleSubmit}>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              </div>
+              {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+            </CardContent>
+            <CardFooter className="flex flex-col gap-3">
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Loading...' : mode === 'login' ? 'Sign in' : 'Create account'}
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
 
-        <p style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: '#6b7280' }}>
+        <p className="text-center text-sm text-muted-foreground">
           {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
-          <button
-            onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
-            style={{ background: 'none', border: 'none', color: '#6366f1', cursor: 'pointer', fontWeight: 600, padding: 0 }}
-          >
+          <button type="button" onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError('') }} className="font-semibold text-primary hover:underline">
             {mode === 'login' ? 'Sign up' : 'Sign in'}
           </button>
         </p>
       </div>
     </div>
   )
-}
-
-const inputStyle: React.CSSProperties = {
-  padding: '10px 14px', border: '1px solid #e5e7eb', borderRadius: 8,
-  fontSize: 14, outline: 'none', fontFamily: 'inherit',
-}
-
-const btnStyle: React.CSSProperties = {
-  padding: '11px', background: '#6366f1', color: 'white', border: 'none',
-  borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer',
 }

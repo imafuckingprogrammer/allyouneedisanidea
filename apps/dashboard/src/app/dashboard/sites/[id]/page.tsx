@@ -1,6 +1,8 @@
 import { redirect, notFound } from 'next/navigation'
-import { createServerSupabaseClient } from '@/lib/supabase'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScriptTag } from './ScriptTag'
+import { MessageSquare, Zap, Mail } from 'lucide-react'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -21,11 +23,8 @@ export default async function SiteOverviewPage({ params }: Props) {
 
   if (!site) notFound()
 
-  const [{ count: convCount }, { count: msgCount }, { count: actionCount }] = await Promise.all([
+  const [{ count: convCount }, { count: actionCount }] = await Promise.all([
     supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('site_id', id),
-    supabase.from('messages')
-      .select('*, conversations!inner(site_id)', { count: 'exact', head: true })
-      .eq('conversations.site_id', id),
     supabase.from('action_logs').select('*', { count: 'exact', head: true }).eq('site_id', id),
   ])
 
@@ -33,79 +32,68 @@ export default async function SiteOverviewPage({ params }: Props) {
   const embedUrl = process.env.NEXT_PUBLIC_EMBED_URL || 'https://your-cdn.pages.dev/embed.js'
 
   return (
-    <div>
-      {/* Stats row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>
-        <StatCard label="Conversations" value={convCount ?? 0} icon="💬" />
-        <StatCard label="Messages" value={msgCount ?? 0} icon="✉️" />
-        <StatCard label="Actions Taken" value={actionCount ?? 0} icon="⚡" />
+    <div className="space-y-8">
+      {/* Stats */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard icon={<MessageSquare className="h-5 w-5 text-muted-foreground" />} label="Conversations" value={convCount ?? 0} />
+        <StatCard icon={<Zap className="h-5 w-5 text-muted-foreground" />} label="Actions Taken" value={actionCount ?? 0} />
+        <StatCard icon={<Mail className="h-5 w-5 text-muted-foreground" />} label="Site ID" value={site.id.slice(0, 8) + '...'} raw />
       </div>
 
       {/* Script tag */}
-      <Section
-        title="Script Tag"
-        hint="Paste this before the closing </body> tag on your website. The agent appears instantly."
-      >
-        <ScriptTag siteId={site.id} embedUrl={embedUrl} agentServerUrl={agentServerUrl} />
-      </Section>
-
-      {/* Quick config preview */}
-      <Section title="Agent Configuration" hint="Manage in Settings tab.">
-        <div style={{
-          background: 'white', border: '1px solid #e5e7eb', borderRadius: 12,
-          overflow: 'hidden',
-        }}>
-          <Row label="Name" value={site.agent_name} />
-          <Row label="Domain" value={site.domain} />
-          <Row label="Brand Color" value={
-            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ width: 16, height: 16, borderRadius: 4, background: site.agent_color, display: 'inline-block' }} />
-              {site.agent_color}
-            </span>
-          } />
-          <Row label="Allowed Actions" value={(site.allowed_actions as string[] || []).join(', ')} last />
+      <div className="space-y-3">
+        <div>
+          <h2 className="text-base font-semibold">Installation</h2>
+          <p className="text-sm text-muted-foreground">Paste this snippet before the closing <code className="rounded bg-muted px-1 py-0.5 text-xs">&lt;/body&gt;</code> tag on your site.</p>
         </div>
-      </Section>
-    </div>
-  )
-}
-
-function StatCard({ label, value, icon }: { label: string; value: number; icon: string }) {
-  return (
-    <div style={{
-      background: 'white', border: '1px solid #e5e7eb', borderRadius: 12,
-      padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 16,
-    }}>
-      <div style={{ fontSize: 28 }}>{icon}</div>
-      <div>
-        <div style={{ fontSize: 28, fontWeight: 700, lineHeight: 1 }}>{value.toLocaleString()}</div>
-        <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>{label}</div>
+        <ScriptTag siteId={site.id} embedUrl={embedUrl} agentServerUrl={agentServerUrl} />
       </div>
+
+      {/* Config preview */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Configuration</CardTitle>
+          <CardDescription>Edit everything in the Settings tab.</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {[
+            { label: 'Agent Name', value: site.agent_name },
+            { label: 'Domain', value: site.domain },
+            { label: 'Brand Color', value: site.agent_color, color: true },
+            { label: 'Allowed Actions', value: (site.allowed_actions as string[] || []).join(', ') || 'all' },
+          ].map(({ label, value, color }, i, arr) => (
+            <div key={label} className={`flex items-center gap-4 px-6 py-3.5 ${i < arr.length - 1 ? 'border-b' : ''}`}>
+              <span className="w-36 shrink-0 text-sm text-muted-foreground">{label}</span>
+              {color ? (
+                <div className="flex items-center gap-2">
+                  <div className="h-4 w-4 rounded-full border" style={{ background: value as string }} />
+                  <span className="text-sm font-mono">{value}</span>
+                </div>
+              ) : (
+                <span className="text-sm">{value}</span>
+              )}
+            </div>
+          ))}
+        </CardContent>
+      </Card>
     </div>
   )
 }
 
-function Section({ title, hint, children }: { title: string; hint: string; children: React.ReactNode }) {
+function StatCard({ icon, label, value, raw }: { icon: React.ReactNode; label: string; value: number | string; raw?: boolean }) {
   return (
-    <div style={{ marginBottom: 32 }}>
-      <div style={{ marginBottom: 12 }}>
-        <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600 }}>{title}</h2>
-        <p style={{ margin: '3px 0 0', fontSize: 13, color: '#9ca3af' }}>{hint}</p>
-      </div>
-      {children}
-    </div>
-  )
-}
-
-function Row({ label, value, last }: { label: string; value: React.ReactNode; last?: boolean }) {
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', padding: '14px 20px',
-      borderBottom: last ? 'none' : '1px solid #f3f4f6',
-      gap: 16,
-    }}>
-      <span style={{ width: 140, fontSize: 13, color: '#6b7280', flexShrink: 0 }}>{label}</span>
-      <span style={{ fontSize: 14, color: '#111827' }}>{value}</span>
-    </div>
+    <Card>
+      <CardContent className="flex items-center gap-4 p-6">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+          {icon}
+        </div>
+        <div>
+          <p className="text-2xl font-bold leading-none">
+            {raw ? value : typeof value === 'number' ? value.toLocaleString() : value}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">{label}</p>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

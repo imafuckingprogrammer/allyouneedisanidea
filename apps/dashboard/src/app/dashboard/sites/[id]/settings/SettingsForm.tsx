@@ -1,30 +1,32 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Check } from 'lucide-react'
 
 interface Site {
-  id: string
-  name: string
-  domain: string
-  agent_name: string
-  agent_color: string
-  system_prompt: string
-  allowed_domains: string[]
-  allowed_actions: string[]
+  id: string; name: string; domain: string; agent_name: string
+  agent_color: string; system_prompt: string
+  allowed_domains: string[]; allowed_actions: string[]
 }
-
-interface Props {
-  siteId: string
-  site: Site
-}
+interface Props { siteId: string; site: Site }
 
 const ACTION_OPTIONS = [
   { key: 'navigate', label: 'Navigate between pages', description: 'Agent can go to different URLs on your site' },
-  { key: 'click', label: 'Click buttons & links', description: 'Agent can click interactive elements' },
-  { key: 'fill', label: 'Fill forms', description: 'Agent can type into inputs and text areas' },
-  { key: 'scroll', label: 'Scroll the page', description: 'Agent can scroll to elements or positions' },
-  { key: 'extract', label: 'Read page content', description: 'Agent can read text from the page (always recommended)' },
+  { key: 'click',    label: 'Click buttons & links',  description: 'Agent can click interactive elements' },
+  { key: 'fill',     label: 'Fill forms',              description: 'Agent can type into inputs and text areas' },
+  { key: 'scroll',   label: 'Scroll the page',         description: 'Agent can scroll to elements or positions' },
+  { key: 'extract',  label: 'Read page content',       description: 'Agent can read text from the page (always recommended)' },
 ]
+
+const COLOR_PRESETS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6']
 
 export function SettingsForm({ siteId, site }: Props) {
   const [form, setForm] = useState({
@@ -36,7 +38,7 @@ export function SettingsForm({ siteId, site }: Props) {
     allowed_domains: (site.allowed_domains || []).join(', '),
   })
   const [allowedActions, setAllowedActions] = useState<Set<string>>(
-    new Set(site.allowed_actions || ['navigate', 'click', 'fill', 'scroll', 'extract'])
+    new Set(site.allowed_actions?.length ? site.allowed_actions : ['navigate','click','fill','scroll','extract'])
   )
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -44,36 +46,22 @@ export function SettingsForm({ siteId, site }: Props) {
   const [deleting, setDeleting] = useState(false)
   const router = useRouter()
 
-  function update(field: string, value: string) {
-    setForm((f) => ({ ...f, [field]: value }))
-    setSaved(false)
-  }
-
+  function update(field: string, value: string) { setForm((f) => ({ ...f, [field]: value })); setSaved(false) }
   function toggleAction(key: string) {
-    setAllowedActions((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
+    setAllowedActions((prev) => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n })
     setSaved(false)
   }
 
   async function save(e: React.FormEvent) {
     e.preventDefault()
-    setSaving(true)
-    setError('')
-    setSaved(false)
+    setSaving(true); setError(''); setSaved(false)
     try {
       const res = await fetch(`/api/sites/${siteId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
-          allowed_domains: form.allowed_domains
-            .split(',')
-            .map((d) => d.trim())
-            .filter(Boolean),
+          allowed_domains: form.allowed_domains.split(',').map((d) => d.trim()).filter(Boolean),
           allowed_actions: Array.from(allowedActions),
         }),
       })
@@ -101,183 +89,117 @@ export function SettingsForm({ siteId, site }: Props) {
   }
 
   return (
-    <div>
-      <div style={{ marginBottom: 28 }}>
-        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>Settings</h2>
-        <p style={{ margin: '4px 0 0', fontSize: 14, color: '#6b7280' }}>
-          Configure your agent's identity, behaviour, and permissions.
-        </p>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold tracking-tight">Settings</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Configure your agent's identity, behaviour, and permissions.</p>
       </div>
 
-      <form onSubmit={save}>
+      <form onSubmit={save} className="space-y-5">
         {/* Identity */}
-        <Card title="Identity">
-          <Field label="Site Name" hint="Internal label for your reference.">
-            <input value={form.name} onChange={(e) => update('name', e.target.value)} style={inputStyle} required />
-          </Field>
-          <Field label="Domain" hint="Primary domain where the agent is installed.">
-            <input value={form.domain} onChange={(e) => update('domain', e.target.value)} style={inputStyle} placeholder="myapp.com" required />
-          </Field>
-          <Field label="Additional Allowed Domains" hint="Comma-separated. Agent can navigate to these too.">
-            <input value={form.allowed_domains} onChange={(e) => update('allowed_domains', e.target.value)} style={inputStyle} placeholder="app.myapp.com, docs.myapp.com" />
-          </Field>
+        <Card>
+          <CardHeader><CardTitle className="text-base">Identity</CardTitle><CardDescription>Basic info about where this agent lives.</CardDescription></CardHeader>
+          <CardContent className="space-y-4">
+            <FormField label="Site Name" hint="Internal label — only visible in your dashboard.">
+              <Input value={form.name} onChange={(e) => update('name', e.target.value)} required />
+            </FormField>
+            <FormField label="Domain" hint="Primary domain where the agent is installed.">
+              <Input value={form.domain} onChange={(e) => update('domain', e.target.value)} placeholder="myapp.com" required />
+            </FormField>
+            <FormField label="Additional Allowed Domains" hint="Comma-separated. Agent can navigate to these too.">
+              <Input value={form.allowed_domains} onChange={(e) => update('allowed_domains', e.target.value)} placeholder="app.myapp.com, docs.myapp.com" />
+            </FormField>
+          </CardContent>
         </Card>
 
         {/* Appearance */}
-        <Card title="Appearance">
-          <Field label="Agent Name" hint="Displayed in the chat widget header.">
-            <input value={form.agent_name} onChange={(e) => update('agent_name', e.target.value)} style={inputStyle} required />
-          </Field>
-          <Field label="Brand Color" hint="Used for the launcher button and message bubbles.">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <input
-                type="color"
-                value={form.agent_color}
-                onChange={(e) => update('agent_color', e.target.value)}
-                style={{ width: 48, height: 40, border: '1px solid #e5e7eb', borderRadius: 6, cursor: 'pointer', padding: 2 }}
-              />
-              <input
-                value={form.agent_color}
-                onChange={(e) => update('agent_color', e.target.value)}
-                style={{ ...inputStyle, width: 120 }}
-                placeholder="#6366f1"
-              />
-              {/* Color presets */}
-              <div style={{ display: 'flex', gap: 6 }}>
-                {['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'].map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => update('agent_color', c)}
-                    style={{
-                      width: 24, height: 24, borderRadius: '50%', background: c,
-                      border: form.agent_color === c ? '2px solid #111827' : '2px solid transparent',
-                      cursor: 'pointer', padding: 0,
-                    }}
-                  />
-                ))}
+        <Card>
+          <CardHeader><CardTitle className="text-base">Appearance</CardTitle><CardDescription>How the chat widget looks to your users.</CardDescription></CardHeader>
+          <CardContent className="space-y-4">
+            <FormField label="Agent Name" hint="Displayed in the chat widget header.">
+              <Input value={form.agent_name} onChange={(e) => update('agent_name', e.target.value)} required />
+            </FormField>
+            <FormField label="Brand Color" hint="Used for the launcher button and message bubbles.">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <input type="color" value={form.agent_color} onChange={(e) => update('agent_color', e.target.value)} className="h-10 w-12 cursor-pointer rounded-md border border-input p-1" />
+                  <Input value={form.agent_color} onChange={(e) => update('agent_color', e.target.value)} className="w-32 font-mono text-sm" placeholder="#6366f1" />
+                </div>
+                <div className="flex gap-2">
+                  {COLOR_PRESETS.map((c) => (
+                    <button key={c} type="button" onClick={() => update('agent_color', c)} className="h-7 w-7 rounded-full ring-offset-2 transition-shadow" style={{ background: c, boxShadow: form.agent_color === c ? `0 0 0 2px white, 0 0 0 4px ${c}` : 'none' }} />
+                  ))}
+                </div>
               </div>
-            </div>
-          </Field>
+            </FormField>
+          </CardContent>
         </Card>
 
-        {/* Behaviour */}
-        <Card title="Agent Instructions">
-          <Field label="System Prompt" hint="The agent's persona and rules. Tell it what it can do, what tone to use, any restrictions.">
-            <textarea
-              value={form.system_prompt}
-              onChange={(e) => update('system_prompt', e.target.value)}
-              rows={8}
-              style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }}
-            />
-            <p style={{ margin: '4px 0 0', fontSize: 12, color: '#9ca3af' }}>
-              {form.system_prompt.length} chars · ~{Math.ceil(form.system_prompt.length / 4)} tokens
-            </p>
-          </Field>
+        {/* Instructions */}
+        <Card>
+          <CardHeader><CardTitle className="text-base">Agent Instructions</CardTitle><CardDescription>The agent's persona, tone, and rules.</CardDescription></CardHeader>
+          <CardContent>
+            <Textarea value={form.system_prompt} onChange={(e) => update('system_prompt', e.target.value)} rows={8} className="resize-y" />
+            <p className="mt-1.5 text-xs text-muted-foreground">{form.system_prompt.length} chars · ~{Math.ceil(form.system_prompt.length / 4)} tokens</p>
+          </CardContent>
         </Card>
 
         {/* Allowed actions */}
-        <Card title="Allowed Actions">
-          <p style={{ margin: '0 0 16px', fontSize: 14, color: '#6b7280' }}>
-            Control what the agent is permitted to do on your site. Disabling an action means the agent won't attempt it even if asked.
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Allowed Actions</CardTitle>
+            <CardDescription>Control what the agent is permitted to do. Disabled actions won't be attempted even if asked.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
             {ACTION_OPTIONS.map((opt) => {
               const enabled = allowedActions.has(opt.key)
               return (
-                <label
-                  key={opt.key}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 14,
-                    padding: '12px 16px', borderRadius: 8, cursor: 'pointer',
-                    background: enabled ? '#f5f3ff' : '#f9fafb',
-                    border: `1px solid ${enabled ? '#ede9fe' : '#e5e7eb'}`,
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={enabled}
-                    onChange={() => toggleAction(opt.key)}
-                    style={{ width: 16, height: 16, accentColor: '#6366f1', cursor: 'pointer' }}
-                  />
+                <label key={opt.key} className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3.5 transition-colors ${enabled ? 'border-primary/30 bg-primary/5' : 'border-border bg-background hover:bg-muted/50'}`}>
+                  <Checkbox checked={enabled} onCheckedChange={() => toggleAction(opt.key)} className="mt-0.5" />
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 500, color: '#111827' }}>{opt.label}</div>
-                    <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 1 }}>{opt.description}</div>
+                    <p className="text-sm font-medium leading-none">{opt.label}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{opt.description}</p>
                   </div>
                 </label>
               )
             })}
-          </div>
+          </CardContent>
         </Card>
 
-        {/* Save */}
-        {error && <p style={{ color: '#dc2626', fontSize: 13, margin: '-8px 0 16px' }}>{error}</p>}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 40 }}>
-          <button type="submit" disabled={saving} style={{
-            padding: '10px 24px', background: saved ? '#10b981' : '#6366f1',
-            color: 'white', border: 'none', borderRadius: 8,
-            fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s',
-          }}>
-            {saving ? 'Saving...' : saved ? '✓ Saved' : 'Save Changes'}
-          </button>
+        {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+
+        <div className="flex justify-end">
+          <Button type="submit" disabled={saving} className={saved ? 'bg-emerald-600 hover:bg-emerald-600' : ''}>
+            {saving ? 'Saving...' : saved ? <><Check className="h-4 w-4" />Saved</> : 'Save Changes'}
+          </Button>
         </div>
       </form>
 
       {/* Danger zone */}
-      <div style={{
-        border: '1px solid #fca5a5', borderRadius: 12,
-        padding: '20px 24px', background: '#fff5f5',
-      }}>
-        <h3 style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 600, color: '#991b1b' }}>
-          Danger Zone
-        </h3>
-        <p style={{ margin: '0 0 16px', fontSize: 14, color: '#b91c1c' }}>
-          Deleting this site removes all conversations, memories, knowledge, and logs. This cannot be undone.
-        </p>
-        <button
-          onClick={deleteSite}
-          disabled={deleting}
-          style={{
-            padding: '9px 18px', background: '#dc2626', color: 'white',
-            border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer',
-          }}
-        >
-          {deleting ? 'Deleting...' : 'Delete this site'}
-        </button>
+      <div>
+        <Separator className="mb-6" />
+        <Card className="border-destructive/40">
+          <CardHeader>
+            <CardTitle className="text-base text-destructive">Danger Zone</CardTitle>
+            <CardDescription>Permanently delete this site and all its conversations, memories, and knowledge. This cannot be undone.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="destructive" onClick={deleteSite} disabled={deleting}>
+              {deleting ? 'Deleting...' : 'Delete this site'}
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
 }
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+function FormField({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) {
   return (
-    <div style={{
-      background: 'white', border: '1px solid #e5e7eb', borderRadius: 12,
-      padding: '24px', marginBottom: 20,
-    }}>
-      <h3 style={{ margin: '0 0 20px', fontSize: 15, fontWeight: 600 }}>{title}</h3>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {children}
-      </div>
-    </div>
-  )
-}
-
-function Field({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: '#374151', marginBottom: 4 }}>
-        {label}
-      </label>
-      <p style={{ margin: '0 0 6px', fontSize: 12, color: '#9ca3af' }}>{hint}</p>
+    <div className="space-y-1.5">
+      <Label>{label}</Label>
+      <p className="text-xs text-muted-foreground">{hint}</p>
       {children}
     </div>
   )
-}
-
-const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '10px 14px', border: '1px solid #e5e7eb',
-  borderRadius: 8, fontSize: 14, outline: 'none', fontFamily: 'inherit',
-  boxSizing: 'border-box', color: '#111827',
 }

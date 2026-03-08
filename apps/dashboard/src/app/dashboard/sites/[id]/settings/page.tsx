@@ -1,5 +1,5 @@
 import { redirect, notFound } from 'next/navigation'
-import { createServerSupabaseClient } from '@/lib/supabase'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { SettingsForm } from './SettingsForm'
 
 interface Props {

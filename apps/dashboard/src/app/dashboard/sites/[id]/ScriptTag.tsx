@@ -1,5 +1,7 @@
 'use client'
 import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Check, Copy } from 'lucide-react'
 
 interface Props {
   siteId: string
@@ -10,12 +12,7 @@ interface Props {
 export function ScriptTag({ siteId, embedUrl, agentServerUrl }: Props) {
   const [copied, setCopied] = useState(false)
 
-  const scriptTag = `<script
-  src="${embedUrl}"
-  data-site-id="${siteId}"
-  data-server="${agentServerUrl}"
-  defer>
-</script>`
+  const scriptTag = `<script\n  src="${embedUrl}"\n  data-site-id="${siteId}"\n  data-server="${agentServerUrl}"\n  defer>\n</script>`
 
   async function copy() {
     await navigator.clipboard.writeText(scriptTag)
@@ -24,17 +21,20 @@ export function ScriptTag({ siteId, embedUrl, agentServerUrl }: Props) {
   }
 
   return (
-    <div style={{ background: '#111827', borderRadius: 12, overflow: 'hidden' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #1f2937' }}>
-        <span style={{ color: '#9ca3af', fontSize: 12, fontFamily: 'monospace' }}>HTML</span>
-        <button
+    <div className="overflow-hidden rounded-lg border bg-zinc-950">
+      <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-2.5">
+        <span className="font-mono text-xs text-zinc-400">HTML</span>
+        <Button
+          size="sm"
+          variant="ghost"
           onClick={copy}
-          style={{ background: copied ? '#065f46' : '#374151', color: copied ? '#6ee7b7' : '#d1d5db', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, cursor: 'pointer', fontWeight: 500 }}
+          className={copied ? 'text-emerald-400 hover:text-emerald-400' : 'text-zinc-400 hover:text-zinc-200'}
         >
-          {copied ? '✓ Copied!' : 'Copy'}
-        </button>
+          {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+          {copied ? 'Copied!' : 'Copy'}
+        </Button>
       </div>
-      <pre style={{ margin: 0, padding: '16px', color: '#e2e8f0', fontSize: 13, lineHeight: 1.7, overflowX: 'auto', fontFamily: "'Fira Code', 'Cascadia Code', monospace" }}>
+      <pre className="overflow-x-auto p-4 text-sm leading-relaxed text-zinc-200" style={{ fontFamily: "'Fira Code', 'Cascadia Code', monospace" }}>
         {scriptTag}
       </pre>
     </div>

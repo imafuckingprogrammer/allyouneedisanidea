@@ -1,6 +1,9 @@
 import { redirect } from 'next/navigation'
-import { createServerSupabaseClient } from '@/lib/supabase'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
 import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Plus, Sparkles, ArrowRight, Globe } from 'lucide-react'
 
 export default async function DashboardPage() {
   const supabase = await createServerSupabaseClient()
@@ -13,49 +16,94 @@ export default async function DashboardPage() {
     .order('created_at', { ascending: false })
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '40px 24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700 }}>✨ Your Agents</h1>
-          <p style={{ margin: '6px 0 0', color: '#6b7280', fontSize: 14 }}>{user.email}</p>
+    <div className="min-h-screen bg-muted/20">
+      {/* Top nav */}
+      <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <Sparkles className="h-4 w-4" />
+            </div>
+            <span className="font-semibold text-sm">AllYouNeedIsAnIdea</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="hidden text-sm text-muted-foreground sm:block">{user.email}</span>
+            <form action="/api/auth/signout" method="POST">
+              <Button variant="ghost" size="sm" type="submit">Sign out</Button>
+            </form>
+          </div>
         </div>
-        <Link href="/dashboard/sites/new" style={btnLinkStyle}>
-          + New Agent
-        </Link>
-      </div>
+      </header>
 
-      {!sites || sites.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px 20px', background: 'white', borderRadius: 12, border: '2px dashed #e5e7eb' }}>
-          <p style={{ fontSize: 18, fontWeight: 600, margin: '0 0 8px' }}>No agents yet</p>
-          <p style={{ color: '#6b7280', margin: '0 0 24px', fontSize: 14 }}>
-            Create your first agent and get a script tag to paste into any website.
-          </p>
-          <Link href="/dashboard/sites/new" style={btnLinkStyle}>Create your first agent</Link>
+      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+        {/* Page heading */}
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Your Agents</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {sites?.length ?? 0} agent{sites?.length !== 1 ? 's' : ''} configured
+            </p>
+          </div>
+          <Button asChild>
+            <Link href="/dashboard/sites/new">
+              <Plus className="h-4 w-4" />
+              New Agent
+            </Link>
+          </Button>
         </div>
-      ) : (
-        <div style={{ display: 'grid', gap: 16 }}>
-          {sites.map((site) => (
-            <Link key={site.id} href={`/dashboard/sites/${site.id}`} style={{ textDecoration: 'none' }}>
-              <div style={{ background: 'white', borderRadius: 12, padding: '20px 24px', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 16, cursor: 'pointer', transition: 'box-shadow 0.15s' }}>
-                <div style={{ width: 44, height: 44, borderRadius: 10, background: site.agent_color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
+
+        {!sites || sites.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed bg-background py-16 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-muted mb-4">
+              <Sparkles className="h-7 w-7 text-muted-foreground" />
+            </div>
+            <h2 className="text-lg font-semibold mb-1">No agents yet</h2>
+            <p className="text-sm text-muted-foreground mb-6 max-w-xs">
+              Create your first agent and get a script tag to paste into any website.
+            </p>
+            <Button asChild>
+              <Link href="/dashboard/sites/new">
+                <Plus className="h-4 w-4" />
+                Create your first agent
+              </Link>
+            </Button>
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {sites.map((site) => (
+              <Link
+                key={site.id}
+                href={`/dashboard/sites/${site.id}`}
+                className="group flex items-center gap-4 rounded-xl border bg-background p-4 shadow-sm transition-all hover:shadow-md hover:border-primary/30"
+              >
+                {/* Avatar */}
+                <div
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xl shadow-sm"
+                  style={{ background: site.agent_color }}
+                >
                   ✨
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 16, color: '#111827' }}>{site.name}</div>
-                  <div style={{ color: '#6b7280', fontSize: 13, marginTop: 2 }}>{site.domain} · {site.agent_name}</div>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm truncate">{site.name}</p>
+                  <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Globe className="h-3 w-3" />
+                    <span className="truncate">{site.domain}</span>
+                    <span className="text-border">·</span>
+                    <span>{site.agent_name}</span>
+                  </div>
                 </div>
-                <div style={{ color: '#6366f1', fontSize: 13, fontWeight: 500 }}>View →</div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge variant="secondary" className="hidden sm:flex">Active</Badge>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </main>
     </div>
   )
-}
-
-const btnLinkStyle: React.CSSProperties = {
-  display: 'inline-block', padding: '10px 20px', background: '#6366f1',
-  color: 'white', borderRadius: 8, fontSize: 14, fontWeight: 600,
-  textDecoration: 'none', cursor: 'pointer',
 }

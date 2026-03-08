@@ -1,5 +1,13 @@
 'use client'
 import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Card, CardContent } from '@/components/ui/card'
+import { Plus, Trash2, ChevronDown, ChevronUp, BookOpen } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface KnowledgeEntry {
   id: string
@@ -54,195 +62,144 @@ export function KnowledgeManager({ siteId, initialEntries }: Props) {
     try {
       await fetch(`/api/sites/${siteId}/knowledge/${entryId}`, { method: 'DELETE' })
       setEntries(entries.filter((e) => e.id !== entryId))
+      if (expandedId === entryId) setExpandedId(null)
     } finally {
       setDeletingId(null)
     }
   }
 
   return (
-    <div>
+    <div className="space-y-6">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>Knowledge Base</h2>
-          <p style={{ margin: '4px 0 0', fontSize: 14, color: '#6b7280' }}>
+          <h2 className="text-xl font-bold tracking-tight">Knowledge Base</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
             Paste in anything your agent should know — FAQs, pricing, policies, how-tos.
-            The agent searches this before every response.
+            The agent searches this context before every response.
           </p>
         </div>
         {!showForm && (
-          <button onClick={() => setShowForm(true)} style={primaryBtn}>
-            + Add Entry
-          </button>
+          <Button onClick={() => setShowForm(true)} className="shrink-0">
+            <Plus className="h-4 w-4" />
+            Add Entry
+          </Button>
         )}
       </div>
 
       {/* Add form */}
       {showForm && (
-        <div style={{
-          background: 'white', border: '2px solid #6366f1', borderRadius: 12,
-          padding: 24, marginBottom: 24,
-        }}>
-          <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 600 }}>New Knowledge Entry</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div>
-              <label style={labelStyle}>Title</label>
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Cancellation Policy"
-                style={inputStyle}
-                autoFocus
-              />
+        <Card className="border-primary/50 shadow-sm">
+          <CardContent className="p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-sm">New Knowledge Entry</h3>
+              <Button variant="ghost" size="sm" onClick={() => { setShowForm(false); setError(''); setTitle(''); setContent('') }}>
+                Cancel
+              </Button>
             </div>
-            <div>
-              <label style={labelStyle}>Content</label>
-              <textarea
+            <div className="space-y-2">
+              <Label htmlFor="entry-title">Title</Label>
+              <Input id="entry-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Cancellation Policy" autoFocus />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="entry-content">Content</Label>
+              <Textarea
+                id="entry-content"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="Paste the text the agent should know. Be as detailed as you like — exact steps, links, edge cases, etc."
                 rows={8}
-                style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }}
+                className="resize-y"
               />
-              <p style={{ margin: '4px 0 0', fontSize: 12, color: '#9ca3af' }}>
-                {content.length} chars · ~{Math.ceil(content.length / 4)} tokens
-              </p>
+              <p className="text-xs text-muted-foreground">{content.length} chars · ~{Math.ceil(content.length / 4)} tokens</p>
             </div>
-            {error && <p style={{ color: '#dc2626', fontSize: 13, margin: 0 }}>{error}</p>}
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => { setShowForm(false); setError(''); setTitle(''); setContent('') }}
-                style={ghostBtn}
-              >
-                Cancel
-              </button>
-              <button onClick={addEntry} disabled={saving} style={primaryBtn}>
+            {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+            <div className="flex justify-end">
+              <Button onClick={addEntry} disabled={saving}>
                 {saving ? 'Saving...' : 'Save Entry'}
-              </button>
+              </Button>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Empty state */}
       {entries.length === 0 && !showForm && (
-        <div style={{
-          background: 'white', border: '2px dashed #e5e7eb', borderRadius: 12,
-          padding: '48px 24px', textAlign: 'center',
-        }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>📚</div>
-          <p style={{ fontWeight: 600, fontSize: 16, margin: '0 0 6px' }}>No knowledge yet</p>
-          <p style={{ color: '#6b7280', fontSize: 14, margin: '0 0 20px' }}>
+        <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed bg-background py-16 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-muted mb-4">
+            <BookOpen className="h-7 w-7 text-muted-foreground" />
+          </div>
+          <h3 className="font-semibold mb-1">No knowledge yet</h3>
+          <p className="text-sm text-muted-foreground mb-6 max-w-xs">
             Add your first entry so the agent can answer questions about your site.
           </p>
-          <button onClick={() => setShowForm(true)} style={primaryBtn}>
+          <Button onClick={() => setShowForm(true)}>
+            <Plus className="h-4 w-4" />
             Add your first entry
-          </button>
+          </Button>
         </div>
       )}
 
       {/* Entries list */}
       {entries.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="space-y-2">
           {entries.map((entry) => {
             const isExpanded = expandedId === entry.id
-            const preview = entry.content.slice(0, 160) + (entry.content.length > 160 ? '...' : '')
             return (
-              <div
-                key={entry.id}
-                style={{
-                  background: 'white', border: '1px solid #e5e7eb', borderRadius: 12,
-                  overflow: 'hidden',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex', alignItems: 'flex-start', gap: 12,
-                    padding: '16px 20px', cursor: 'pointer',
-                  }}
+              <Card key={entry.id} className="overflow-hidden">
+                <button
+                  className="w-full text-left"
                   onClick={() => setExpandedId(isExpanded ? null : entry.id)}
                 >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: '#111827', marginBottom: 4 }}>
-                      {entry.title}
+                  <div className="flex items-center gap-3 px-5 py-4">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm">{entry.title}</p>
+                      {!isExpanded && (
+                        <p className="mt-0.5 text-xs text-muted-foreground truncate">
+                          {entry.content.slice(0, 120)}{entry.content.length > 120 ? '...' : ''}
+                        </p>
+                      )}
                     </div>
-                    {!isExpanded && (
-                      <div style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.5 }}>
-                        {preview}
-                      </div>
-                    )}
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-xs text-muted-foreground hidden sm:block">
+                        ~{Math.ceil(entry.content.length / 4)} tokens
+                      </span>
+                      {isExpanded
+                        ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                        : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      }
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                    <span style={{ fontSize: 12, color: '#9ca3af' }}>
-                      {Math.ceil(entry.content.length / 4)} tokens
-                    </span>
-                    <span style={{ fontSize: 18, color: '#9ca3af', lineHeight: 1 }}>
-                      {isExpanded ? '↑' : '↓'}
-                    </span>
-                  </div>
-                </div>
+                </button>
 
                 {isExpanded && (
-                  <div style={{ borderTop: '1px solid #f3f4f6', padding: '0 20px 16px' }}>
-                    <pre style={{
-                      margin: '16px 0 16px', fontFamily: 'inherit', fontSize: 13,
-                      lineHeight: 1.7, color: '#374151', whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word', background: '#f9fafb',
-                      padding: '12px 16px', borderRadius: 8,
-                    }}>
+                  <div className="border-t">
+                    <pre className="m-4 rounded-md bg-muted p-4 text-sm leading-relaxed whitespace-pre-wrap break-words font-sans">
                       {entry.content}
                     </pre>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); deleteEntry(entry.id) }}
+                    <div className="flex justify-end px-5 pb-4">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => deleteEntry(entry.id)}
                         disabled={deletingId === entry.id}
-                        style={dangerBtn}
                       >
+                        <Trash2 className="h-4 w-4" />
                         {deletingId === entry.id ? 'Deleting...' : 'Delete entry'}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
-              </div>
+              </Card>
             )
           })}
-          <button
-            onClick={() => setShowForm(true)}
-            style={{ ...ghostBtn, alignSelf: 'flex-start', marginTop: 4 }}
-          >
-            + Add another entry
-          </button>
+          <Button variant="outline" size="sm" onClick={() => setShowForm(true)} className="mt-2">
+            <Plus className="h-4 w-4" />
+            Add another entry
+          </Button>
         </div>
       )}
     </div>
   )
-}
-
-const labelStyle: React.CSSProperties = {
-  display: 'block', fontSize: 13, fontWeight: 500,
-  color: '#374151', marginBottom: 6,
-}
-
-const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '10px 14px', border: '1px solid #e5e7eb',
-  borderRadius: 8, fontSize: 14, outline: 'none', fontFamily: 'inherit',
-  boxSizing: 'border-box', color: '#111827',
-}
-
-const primaryBtn: React.CSSProperties = {
-  padding: '9px 18px', background: '#6366f1', color: 'white',
-  border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600,
-  cursor: 'pointer', whiteSpace: 'nowrap',
-}
-
-const ghostBtn: React.CSSProperties = {
-  padding: '9px 18px', background: '#f3f4f6', color: '#374151',
-  border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 500,
-  cursor: 'pointer',
-}
-
-const dangerBtn: React.CSSProperties = {
-  padding: '7px 14px', background: 'none', color: '#dc2626',
-  border: '1px solid #fca5a5', borderRadius: 7, fontSize: 13,
-  fontWeight: 500, cursor: 'pointer',
 }

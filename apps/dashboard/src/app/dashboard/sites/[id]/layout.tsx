@@ -1,7 +1,9 @@
 import { redirect, notFound } from 'next/navigation'
-import { createServerSupabaseClient } from '@/lib/supabase'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
 import Link from 'next/link'
+import { Button } from '@/components/ui/button'
 import { SiteTabs } from '@/components/SiteTabs'
+import { Sparkles, ArrowLeft } from 'lucide-react'
 
 interface Props {
   children: React.ReactNode
@@ -24,51 +26,42 @@ export default async function SiteLayout({ children, params }: Props) {
   if (!site) notFound()
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
+    <div className="min-h-screen bg-muted/20">
       {/* Top bar */}
-      <div style={{
-        background: 'white',
-        borderBottom: '1px solid #e5e7eb',
-        padding: '0 32px',
-      }}>
-        <div style={{ maxWidth: 1000, margin: '0 auto' }}>
-          {/* Header row */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 16,
-            padding: '20px 0 16px',
-          }}>
-            <Link
-              href="/dashboard"
-              style={{ color: '#9ca3af', fontSize: 13, textDecoration: 'none', whiteSpace: 'nowrap' }}
-            >
-              ← All Agents
-            </Link>
-            <div style={{ width: 1, height: 16, background: '#e5e7eb' }} />
-            <div
-              style={{
-                width: 32, height: 32, borderRadius: 8,
-                background: site.agent_color,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 15, flexShrink: 0,
-              }}
-            >
-              ✨
-            </div>
-            <div>
-              <span style={{ fontWeight: 700, fontSize: 16, color: '#111827' }}>{site.name}</span>
-              <span style={{ color: '#9ca3af', fontSize: 13, marginLeft: 10 }}>{site.domain}</span>
+      <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6">
+          {/* Nav row */}
+          <div className="flex h-14 items-center gap-3">
+            <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
+              <Link href="/dashboard">
+                <ArrowLeft className="h-4 w-4" />
+                <span className="hidden sm:inline">All Agents</span>
+              </Link>
+            </Button>
+            <div className="h-4 w-px bg-border" />
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base"
+                style={{ background: site.agent_color }}
+              >
+                ✨
+              </div>
+              <div className="min-w-0">
+                <span className="font-semibold text-sm truncate">{site.name}</span>
+                <span className="hidden sm:inline text-muted-foreground text-xs ml-2">{site.domain}</span>
+              </div>
             </div>
           </div>
 
           {/* Tabs */}
           <SiteTabs siteId={id} />
         </div>
-      </div>
+      </header>
 
-      {/* Page content */}
-      <div style={{ maxWidth: 1000, margin: '0 auto', padding: '32px 32px' }}>
+      {/* Content */}
+      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         {children}
-      </div>
+      </main>
     </div>
   )
 }

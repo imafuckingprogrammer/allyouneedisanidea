@@ -1,7 +1,5 @@
-import type { NextConfig } from 'next'
-
-const nextConfig: NextConfig = {
-  // Allow embed script to be served from this domain with CORS headers
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   async headers() {
     return [
       {
